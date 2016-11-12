@@ -196,46 +196,6 @@ namespace eval avltree {
                     return [expr {$a == $b ? 0 : $a < $b ? -1 : 1}]
                 }
 
-                proc insert {value {root_node "NULL"} {parent_node "NULL"} {parent_side "NULL"}} {
-                    # Insert new node with the specified value
-                    #
-                    # Arguments:
-                    # root_node     The root of the tree to search for elements
-                    # value         The value to insert
-                    #
-                    # Return the new node, otherwise 0 if duplicate value
-                    if {$root_node eq "NULL"} {
-                        set root_node [namespace current]
-                    }
-                    if {$root_node eq [namespace current]} {
-                        variable tree_root
-                        set root_node $tree_root
-                        set parent_node [namespace current]::tree_root
-                    }
-                    set r 0
-                    if {$root_node eq "::avltree::node::NIL"} {
-                        set root_node [avltree::node init $value]
-                        if {$parent_side eq "NULL"} {
-                            # tree root
-                            set ${parent_node} $root_node
-                        } else {
-                            # otherwise, update the parent
-                            set ${parent_node}::child_${parent_side} $root_node
-                        }
-                        set ${root_node}::parent $parent_node
-                        return $root_node
-                    } elseif {[set ${root_node}::value] != $value} {
-                        # insert left/right
-                        set LR [expr { \
-                            [compare $value [set ${root_node}::value]] < 0 ? \
-                            "left" : "right"}]
-                        set r [insert $value [set ${root_node}::child_${LR}] \
-                        $root_node $LR]
-                        adjust_balance $root_node $parent_node $parent_side
-                    }
-                    return $r
-                }
-
                 proc find {value {root_node "NULL"}} {
                     if {$root_node eq "NULL"} {
                         set root_node [namespace current]
@@ -498,6 +458,43 @@ namespace eval avltree {
                 }
 
             }
+            proc ${treename}::insert [list value [list root_node $treename] {parent_node "NULL"} {parent_side "NULL"}] {
+                # Insert new node with the specified value
+                #
+                # Arguments:
+                # root_node     The root of the tree to search for elements
+                # value         The value to insert
+                #
+                # Return the new node, otherwise 0 if duplicate value
+                if {$root_node eq [namespace current]} {
+                    variable tree_root
+                    set root_node $tree_root
+                    set parent_node [namespace current]::tree_root
+                }
+                set r 0
+                if {$root_node eq "::avltree::node::NIL"} {
+                    set root_node [avltree::node init $value]
+                    if {$parent_side eq "NULL"} {
+                        # tree root
+                        set ${parent_node} $root_node
+                    } else {
+                        # otherwise, update the parent
+                        set ${parent_node}::child_${parent_side} $root_node
+                    }
+                    set ${root_node}::parent $parent_node
+                    return $root_node
+                } elseif {[set ${root_node}::value] != $value} {
+                    # insert left/right
+                    set LR [expr { \
+                        [compare $value [set ${root_node}::value]] < 0 ? \
+                        "left" : "right"}]
+                    set r [insert $value [set ${root_node}::child_${LR}] \
+                    $root_node $LR]
+                    adjust_balance $root_node $parent_node $parent_side
+                }
+                return $r
+            }
+
             $treename init
             return $treename
         }
