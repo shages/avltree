@@ -157,11 +157,19 @@ namespace eval avltree {
                 }
 
                 proc adjust_balance {root_node parent_node parent_side} {
-                    set bf2 [expr {[get_balance $root_node]/2}]
-                    if {$bf2 == -1 || $bf2 == 1} {
-                        set LR [expr {$bf2 > 0 ? "left" : "right"}]
-                        set nLR [expr {$LR eq "left" ? "right" : "left"}]
-                        if {[get_balance [set ${root_node}::child_${nLR}]] == -$bf2} {
+                    #set bf2 [expr {[get_balance $root_node]/2}]
+                    set bf2 [get_balance $root_node]
+                    if {$bf2 == -2 || $bf2 == 2} {
+                        if {$bf2 > 0} {
+                            set LR "left"
+                            set nLR "right"
+                        } else {
+                            set LR "right"
+                            set nLR "left"
+                        }
+                        #set LR [expr {$bf2 > 0 ? "left" : "right"}]
+                        #set nLR [expr {$LR eq "left" ? "right" : "left"}]
+                        if {[get_balance [set ${root_node}::child_${nLR}]]*2 == -$bf2} {
                             set ${root_node}::child_${nLR} [rotate [set ${root_node}::child_${nLR}] $nLR]
                         }
                         # Update parent pointer to new, rotated root node
