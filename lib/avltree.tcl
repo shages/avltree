@@ -163,27 +163,27 @@ namespace eval avltree {
                         if {[get_balance [set ${root_node}::child_left]] == 1} {
                             set ${root_node}::child_left [rotate [set ${root_node}::child_left] "left"]
                         }
-                        if {$parent_node ne "NULL"} {
-                            set r [rotate $root_node "right"]
-                            if {$parent_side ne "NULL"} {
-                                set root_node [set ${parent_node}::child_${parent_side} $r]
-                            } else {
-                                # Updating the tree root
-                                set root_node [set $parent_node $r]
-                            }
+                        set r [rotate $root_node "right"]
+                        if {$parent_side ne "NULL"} {
+                            set root_node [set ${parent_node}::child_${parent_side} $r]
+                        } else {
+                            # Updating the tree root
+                            variable tree_root
+                            set tree_root $r
+                            set root_node $r
                         }
                     } elseif {$bf2 == 2} {
                         if {[get_balance [set ${root_node}::child_right]] == -1} {
                             set ${root_node}::child_right [rotate [set ${root_node}::child_right] "right"]
                         }
-                        if {$parent_node ne "NULL"} {
-                            set r [rotate $root_node "left"]
-                            if {$parent_side ne "NULL"} {
-                                set root_node [set ${parent_node}::child_${parent_side} $r]
-                            } else {
-                                # Updating the tree root
-                                set root_node [set $parent_node $r]
-                            }
+                        set r [rotate $root_node "left"]
+                        if {$parent_side ne "NULL"} {
+                            set root_node [set ${parent_node}::child_${parent_side} $r]
+                        } else {
+                            # Updating the tree root
+                            variable tree_root
+                            set tree_root $r
+                            set root_node $r
                         }
                     }
                     if {$root_node ne "::avltree::node::NIL"} {
@@ -306,7 +306,7 @@ namespace eval avltree {
 
                     # Search for a parent with a left child and return it
                     set parent $node
-                    while {[set parent [set [set node $parent]::parent]] ne "[namespace current]::tree_root"} {
+                    while {[set parent [set [set node $parent]::parent]] ne "::avltree::node::NIL"} {
                         if {[set ${parent}::child_left] eq $node} {
                             return $parent
                         }
@@ -330,7 +330,7 @@ namespace eval avltree {
 
                     # Search for a parent with a right child and return it
                     set parent $node
-                    while {[set parent [set [set node $parent]::parent]] ne "[namespace current]::tree_root"} {
+                    while {[set parent [set [set node $parent]::parent]] ne "::avltree::node::NIL"} {
                         if {[set ${parent}::child_right] eq $node} {
                             return $parent
                         }
@@ -460,9 +460,9 @@ namespace eval avltree {
             }
             proc ${treename}::insert {value} {
                 variable tree_root
-                Insert $value $tree_root [namespace current]::tree_root
+                Insert $value $tree_root
             }
-            proc ${treename}::Insert [list value [list root_node $treename] {parent_node "NULL"} {parent_side "NULL"}] {
+            proc ${treename}::Insert [list value [list root_node $treename] {parent_node "::avltree::node::NIL"} {parent_side "NULL"}] {
                 # Insert new node with the specified value
                 #
                 # Arguments:
@@ -475,7 +475,8 @@ namespace eval avltree {
                     set root_node [avltree::node init $value]
                     if {$parent_side eq "NULL"} {
                         # tree root
-                        set ${parent_node} $root_node
+                        variable tree_root
+                        set tree_root $root_node
                     } else {
                         # otherwise, update the parent
                         set ${parent_node}::child_${parent_side} $root_node
