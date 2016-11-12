@@ -458,7 +458,11 @@ namespace eval avltree {
                 }
 
             }
-            proc ${treename}::insert [list value [list root_node $treename] {parent_node "NULL"} {parent_side "NULL"}] {
+            proc ${treename}::insert {value} {
+                variable tree_root
+                Insert $value $tree_root [namespace current]::tree_root
+            }
+            proc ${treename}::Insert [list value [list root_node $treename] {parent_node "NULL"} {parent_side "NULL"}] {
                 # Insert new node with the specified value
                 #
                 # Arguments:
@@ -466,11 +470,6 @@ namespace eval avltree {
                 # value         The value to insert
                 #
                 # Return the new node, otherwise 0 if duplicate value
-                if {$root_node eq [namespace current]} {
-                    variable tree_root
-                    set root_node $tree_root
-                    set parent_node [namespace current]::tree_root
-                }
                 set r 0
                 if {$root_node eq "::avltree::node::NIL"} {
                     set root_node [avltree::node init $value]
@@ -488,7 +487,7 @@ namespace eval avltree {
                     set LR [expr { \
                         [compare $value [set ${root_node}::value]] < 0 ? \
                         "left" : "right"}]
-                    set r [insert $value [set ${root_node}::child_${LR}] \
+                    set r [Insert $value [set ${root_node}::child_${LR}] \
                     $root_node $LR]
                     adjust_balance $root_node $parent_node $parent_side
                 }
