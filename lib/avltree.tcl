@@ -159,22 +159,25 @@ namespace eval avltree {
                 proc adjust_balance {root_node parent_node parent_side} {
                     #set bf2 [expr {[get_balance $root_node]/2}]
                     set bf2 [get_balance $root_node]
-                    if {$bf2 == -2 || $bf2 == 2} {
-                        if {$bf2 > 0} {
-                            set LR "left"
-                            set nLR "right"
-                        } else {
-                            set LR "right"
-                            set nLR "left"
+                    if {$bf2 == -2} {
+                        if {[get_balance [set ${root_node}::child_left]] == 1} {
+                            set ${root_node}::child_left [rotate [set ${root_node}::child_left] "left"]
                         }
-                        #set LR [expr {$bf2 > 0 ? "left" : "right"}]
-                        #set nLR [expr {$LR eq "left" ? "right" : "left"}]
-                        if {[get_balance [set ${root_node}::child_${nLR}]]*2 == -$bf2} {
-                            set ${root_node}::child_${nLR} [rotate [set ${root_node}::child_${nLR}] $nLR]
-                        }
-                        # Update parent pointer to new, rotated root node
                         if {$parent_node ne "NULL"} {
-                            set r [rotate $root_node $LR]
+                            set r [rotate $root_node "right"]
+                            if {$parent_side ne "NULL"} {
+                                set root_node [set ${parent_node}::child_${parent_side} $r]
+                            } else {
+                                # Updating the tree root
+                                set root_node [set $parent_node $r]
+                            }
+                        }
+                    } elseif {$bf2 == 2} {
+                        if {[get_balance [set ${root_node}::child_right]] == -1} {
+                            set ${root_node}::child_right [rotate [set ${root_node}::child_right] "right"]
+                        }
+                        if {$parent_node ne "NULL"} {
+                            set r [rotate $root_node "left"]
                             if {$parent_side ne "NULL"} {
                                 set root_node [set ${parent_node}::child_${parent_side} $r]
                             } else {
