@@ -156,38 +156,33 @@ namespace eval avltree {
                     return $child
                 }
 
-                proc adjust_balance {root_node parent_node parent_side} {
-                    #set bf2 [expr {[get_balance $root_node]/2}]
-                    set bf2 [get_balance $root_node]
+                # $root_node = pointer to root node (ex: N0::child_left)
+                proc adjust_balance {root_node} {
+                    upvar $root_node root
+                    #puts "DEBUG: ABALANCE called"
+                    #puts "  root_node : $root_node"
+                    #puts "  root      : $root"
+                    set bf2 [get_balance $root]
+                    #puts "  balance   : $bf2"
                     if {$bf2 == -2} {
-                        if {[get_balance [set ${root_node}::child_left]] == 1} {
-                            set ${root_node}::child_left [rotate [set ${root_node}::child_left] "left"]
+                        #puts "DEBUG: in bf2 == -2"
+                        upvar ${root}::child_left cleft
+                        if {[get_balance $cleft] == 1} {
+                            #puts "DEBUG: left child balance == 1"
+                            set cleft [rotate $cleft "left"]
                         }
-                        set r [rotate $root_node "right"]
-                        if {$parent_side ne "NULL"} {
-                            set root_node [set ${parent_node}::child_${parent_side} $r]
-                        } else {
-                            # Updating the tree root
-                            variable tree_root
-                            set tree_root $r
-                            set root_node $r
-                        }
+                        set root [rotate $root "right"]
                     } elseif {$bf2 == 2} {
-                        if {[get_balance [set ${root_node}::child_right]] == -1} {
-                            set ${root_node}::child_right [rotate [set ${root_node}::child_right] "right"]
+                        #puts "DEBUG: in bf2 == 2"
+                        upvar ${root}::child_right cright
+                        if {[get_balance $cright] == -1} {
+                            #puts "DEBUG: right child balance == -1"
+                            set cright [rotate $cright "right"]
                         }
-                        set r [rotate $root_node "left"]
-                        if {$parent_side ne "NULL"} {
-                            set root_node [set ${parent_node}::child_${parent_side} $r]
-                        } else {
-                            # Updating the tree root
-                            variable tree_root
-                            set tree_root $r
-                            set root_node $r
-                        }
+                        set root [rotate $root "left"]
                     }
-                    if {$root_node ne "::avltree::node::NIL"} {
-                        set ${root_node}::height [get_height $root_node]
+                    if {$root ne "::avltree::node::NIL"} {
+                        set ${root}::height [get_height $root]
                     }
                 }
 
@@ -306,7 +301,7 @@ namespace eval avltree {
 
                     # Search for a parent with a left child and return it
                     set parent $node
-                    while {[set parent [set [set node $parent]::parent]] ne "::avltree::node::NIL"} {
+                    while {[set parent [set [set node $parent]::parent]] ne "[namespace current]::tree_root"} {
                         if {[set ${parent}::child_left] eq $node} {
                             return $parent
                         }
@@ -330,7 +325,7 @@ namespace eval avltree {
 
                     # Search for a parent with a right child and return it
                     set parent $node
-                    while {[set parent [set [set node $parent]::parent]] ne "::avltree::node::NIL"} {
+                    while {[set parent [set [set node $parent]::parent]] ne "[namespace current]::tree_root"} {
                         if {[set ${parent}::child_right] eq $node} {
                             return $parent
                         }
@@ -458,11 +453,7 @@ namespace eval avltree {
                 }
 
             }
-            proc ${treename}::insert {value} {
-                variable tree_root
-                Insert $value $tree_root
-            }
-            proc ${treename}::Insert [list value [list root_node $treename] {parent_node "::avltree::node::NIL"} {parent_side "NULL"}] {
+            proc ${treename}::insert [list value [list root_node ${treename}::tree_root]] {
                 # Insert new node with the specified value
                 #
                 # Arguments:
@@ -470,27 +461,34 @@ namespace eval avltree {
                 # value         The value to insert
                 #
                 # Return the new node, otherwise 0 if duplicate value
+                upvar $root_node root
+                #puts "DEBUG: INSERT: called"
+                #puts "  root_node : $root_node"
+                #puts "  root      : $root"
                 set r 0
-                if {$root_node eq "::avltree::node::NIL"} {
-                    set root_node [avltree::node init $value]
-                    if {$parent_side eq "NULL"} {
-                        # tree root
-                        variable tree_root
-                        set tree_root $root_node
-                    } else {
-                        # otherwise, update the parent
-                        set ${parent_node}::child_${parent_side} $root_node
+                if {$root eq "::avltree::node::NIL"} {
+                    #puts "DEBUG: Inserting here"
+                    set parent [namespace qualifiers $root_node]
+                    if {$parent eq [namespace current]} {
+                        set parent [namespace current]::tree_root
                     }
-                    set ${root_node}::parent $parent_node
-                    return $root_node
-                } elseif {[set ${root_node}::value] != $value} {
+                    #puts "DEBUG: parent : $parent"
+                    set root [avltree::node init $value]
+                    #puts "DEBUG: new root: $root"
+                    #puts "DEBUG: new root parent before: [set ${root}::parent]"
+                    set ${root}::parent $parent
+                    #puts "DEBUG: new root parent after: [set ${root}::parent]"
+                    return $root
+                } elseif {[set ${root}::value] != $value} {
                     # insert left/right
                     set LR [expr { \
-                        [compare $value [set ${root_node}::value]] < 0 ? \
+                        [compare $value [set ${root}::value]] < 0 ? \
                         "left" : "right"}]
-                    set r [Insert $value [set ${root_node}::child_${LR}] \
-                    $root_node $LR]
-                    adjust_balance $root_node $parent_node $parent_side
+                    set r [insert $value ${root}::child_${LR}]
+                    # Where $root_node == ::avltree::T0::tree_root for
+                    # the root node
+                    adjust_balance $root_node
+                    #adjust_balance $root_node $parent_node $parent_side
                 }
                 return $r
             }
