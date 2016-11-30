@@ -488,11 +488,9 @@ namespace eval avltree {
                     #puts "DEBUG: root = $root"
 
                     return $root
-                } elseif {[set ${root}::value] != $value} {
+                } elseif {[set comp [compare $value [set ${root}::value]]] != 0} {
                     # insert left/right
-                    set LR [expr { \
-                        [compare $value [set ${root}::value]] < 0 ? \
-                        "left" : "right"}]
+                    set LR [expr { $comp < 0 ? "left" : "right"}]
                     set r [insert $value ${root}::child_${LR}]
                 }
                 return $r
