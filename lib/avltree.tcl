@@ -15,7 +15,7 @@ namespace eval avltree {
         variable counter
         set tname "::avltree::T[incr counter]"
         namespace eval $tname {
-            # core functions
+            # Core functions
             namespace export destroy
             namespace export compare
             namespace export insert
@@ -23,17 +23,12 @@ namespace eval avltree {
             namespace export delete_node
             namespace export find
 
-            # additional functionality
+            # Goodies - additional functionality
+            namespace export value_of_node
             namespace export rightmost_node
             namespace export leftmost_node
             namespace export rightmost_value
             namespace export leftmost_value
-
-            namespace export pop_leftmost
-            #namespace export pop_rightmost
-            #namespace export pop_to_list
-
-            #namespace export to_list
 
             namespace export node_left_of_node
             namespace export node_right_of_node
@@ -42,7 +37,12 @@ namespace eval avltree {
             namespace export value_left_of_value
             namespace export value_right_of_value
 
-            # utility
+            namespace export pop_leftmost_value
+            namespace export pop_rightmost_value
+            namespace export pop_to_list
+            namespace export to_list
+
+            # Utility
             namespace export draw
             namespace export get_tree_strings
 
@@ -825,6 +825,25 @@ namespace eval avltree {
             ##    ##  ##     ## ##     ## ##     ##  ##  ##       ##    ##
              ######    #######   #######  ########  #### ########  ######
 
+            proc value_of_node {node} {
+                # Return the value of a specified node
+                #
+                # Arguments:
+                # node          The node to get the value for
+                #
+                # Returns:
+                # value         The value of the node
+                # "NULL"        If the node doesn't exist
+                variable nodes
+
+                # Check if node exists
+                if {$node >= [llength $nodes] || $node <= 0} {
+                    return "NULL"
+                }
+
+                return [lindex $nodes $node 0]
+            }
+
             proc xmost_node {node dir} {
                 # Return the X-most node in this sub-tree, where X is "left" or
                 # "right"
@@ -1018,7 +1037,7 @@ namespace eval avltree {
                 return [value_right_of_node [find $value]]
             }
 
-            proc pop_leftmost {} {
+            proc pop_leftmost_value {} {
                 # Pop the leftmost node in the tree off the tree and return its
                 # value
                 #
@@ -1030,6 +1049,89 @@ namespace eval avltree {
                 set value [leftmost_value]
                 delete $value
                 return $value
+            }
+
+            proc pop_rightmost_value {} {
+                # Pop the rightmost node in the tree off the tree and return its
+                # value
+                #
+                # Arguments: none
+                #
+                # Returns:
+                # value         Value of the rightmost node
+                # "NULL"        If no nodes exist in the tree
+                set value [rightmost_value]
+                delete $value
+                return $value
+            }
+
+            proc pop_to_list {{sort_method ascending}} {
+                # Pop all nodes in the tree and return their values in a list
+                #
+                # Can be ordered in ascending or descending order
+                #
+                # Arguments:
+                # sort_method   'ascending' | 'descending' - order of the
+                #               returned list
+                #
+                # Returns:
+                # values        List of values from the tree
+                # "NULL"        If no nodes exist in the tree
+                set values [list]
+
+                if {$sort_method eq "ascending"} {
+                    set cmd "pop_leftmost_value"
+                } elseif {$sort_method eq "descending"} {
+                    set cmd "pop_rightmost_value"
+                } else {
+                    error "\[pop_to_list\] sort_method '$sort_method' not supported"
+                }
+
+                while {[set value [$cmd]] != "NULL"} {
+                    lappend values $value
+                }
+
+                if {$values eq ""} {
+                    return "NULL"
+                } else {
+                    return $values
+                }
+            }
+
+            proc to_list {{sort_method ascending}} {
+                # Return all values in the tree sorted by $sort_method
+                #
+                # Arguments:
+                # sort_method   'ascending' | 'descending' - order of the
+                #               returned list
+                #
+                # Returns:
+                # values        List of values from the tree
+                # "NULL"        If no nodes exist in the tree
+                set values [list]
+
+                if {$sort_method eq "ascending"} {
+                    set start_cmd "leftmost_node"
+                    set next_cmd "node_right_of_node"
+                } elseif {$sort_method eq "descending"} {
+                    set start_cmd "rightmost_node"
+                    set next_cmd "node_left_of_node"
+                } else {
+                    error "\[to_list\] sort_method '$sort_method' not supported"
+                }
+
+                set node [$start_cmd]
+                if {$node eq "NULL"} {
+                    return "NULL"
+                } else {
+                    lappend values [value_of_node $node]
+                }
+
+                while {[set node [$next_cmd $node]] != 0} {
+                    lappend values [value_of_node $node]
+                }
+
+                return $values
             }
 
 
@@ -1099,78 +1201,3 @@ namespace eval avltree {
         return $tname
     }
 }
-
-# New data structures
-# Node:
-#   List: {value balance parent cleft cright}
-# initial vals:
-#  { $value 0 "NIL" "NIL" "NIL" }
-# NIL node:
-#  { "NULL" 0 "NIL" "NIL" "NIL" }
-#
-#
-# Tree:
-#  Namespace
-#   Variables:
-#    tree_root      <int>
-#    nodes          <list>
-#
-# Example:
-# insert 2
-#  tree::root = 0
-#  tree::nodes = {
-#                   {2 0 "NIL" "NIL" "NIL"}
-#                }
-#
-# insert 3
-#  tree::root = 0
-#  tree::nodes = {
-#                   {2 1 "NIL" "NIL" 1}
-#                   {3 0 0 "NIL" "NIL"}
-#                }
-#
-# insert 4
-#  tree::root = 1
-#  tree::nodes = {
-#                   {2 0 1 "NIL" "NIL"}
-#                   {3 0 "NIL" 0 2}
-#                   {4 0 1 "NIL" "NIL"}
-#                }
-#
-# delete 2
-#  tree::root = 1
-#  tree::nodes = {
-#                   {}
-#                   {3 1 "NIL" "NIL" 2}
-#                   {4 0 1 "NIL" "NIL"}
-#                }
-#
-# insert 1
-#  tree::root = 1
-#  tree::nodes = {
-#                   {}
-#                   {3 0 "NIL" 3 2}
-#                   {4 0 1 "NIL" "NIL"}
-#                   {1 0 1 "NIL" "NIL"}
-#                }
-#
-# delete 4
-#  tree::root = 1
-#  tree::free = {0 2}
-#  tree::nodes = {
-#                   {}
-#                   {3 -1 "NIL" 3 "NIL"}
-#                   {}
-#                   {1 0 1 "NIL" "NIL"}
-#                }
-#
-# insert 0
-#  tree::root = 3
-#  tree::free = {0}
-#  tree::nodes = {
-#                   {}
-#                   {3 0 3 "NIL" "NIL"}
-#                   {0 0 3 "NIL" "NIL"}
-#                   {1 0 "NIL" 2 1}
-#                }
-#  tree::NIL = {"NULL" 0 "NIL" "NIL" "NIL"}
